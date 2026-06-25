@@ -1,0 +1,25 @@
+# Local environment configuration
+.env
+
+# Virtual environment
+venv/
+.venv/
+
+# Local dataset directory
+datasets/
+
+# Saved model weights
+models/
+
+# YOLO training runs
+runs/
+
+# Visualization outputs
+outputs/
+
+# Python cache files
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.pytest_cache/
