@@ -33,22 +33,20 @@ def train_yolo():
     and commits results to Modal Volume.
     """
     from ultralytics import YOLO
-    
+
     print("Checking mounted dataset...")
     if not os.path.exists("/dataset"):
         raise RuntimeError("Dataset mount not found at /dataset")
-        
+
     print("Files in mount:", os.listdir("/dataset"))
-    
-    # Copy dataset to a mutable directory (/tmp) so YOLO can write training cache
+
     mutable_dataset_dir = "/tmp/dataset"
     if os.path.exists(mutable_dataset_dir):
         shutil.rmtree(mutable_dataset_dir)
-        
+
     print(f"Copying dataset to {mutable_dataset_dir} for training...")
     shutil.copytree("/dataset", mutable_dataset_dir)
-    
-    # Overwrite the dataset YAML file inside the container with paths matching container dirs
+
     yaml_content = """
 path: /tmp/dataset
 train: images/train
@@ -58,37 +56,35 @@ names:
 """
     with open(f"{mutable_dataset_dir}/sku110k_subset.yaml", "w") as f:
         f.write(yaml_content.strip())
-        
+
     print("Dataset ready. Loading pre-trained YOLOv8n weights...")
     model = YOLO("yolov8n.pt")
-    
-    # Fine-tune the YOLOv8 nano model
+
     print("Starting YOLO fine-tuning on remote GPU...")
     model.train(
         data=f"{mutable_dataset_dir}/sku110k_subset.yaml",
-        epochs=15,  # 15 epochs is enough to demonstrate training process & fine-tune on small subset
+        epochs=15,
         imgsz=640,
         batch=8,
-        device=0,   # GPU
+        device=0,
         project="/tmp/runs",
         name="sku110k"
     )
-    
-    # Save best.pt and results.png to volume
+
     os.makedirs("/models", exist_ok=True)
     best_weight_src = "/tmp/runs/sku110k/weights/best.pt"
     results_png_src = "/tmp/runs/sku110k/results.png"
-    
+
     if os.path.exists(best_weight_src):
         shutil.copy(best_weight_src, "/models/best.pt")
         print("Copied best.pt to volume /models/best.pt")
     else:
         print("WARNING: best.pt weights not found!")
-        
+
     if os.path.exists(results_png_src):
         shutil.copy(results_png_src, "/models/results.png")
         print("Copied results.png to volume /models/results.png")
-        
+
     print("Committing changes to Modal Volume...")
     volume.commit()
     print("Remote training complete!")
@@ -104,20 +100,19 @@ def get_trained_files():
     files = {}
     best_path = "/models/best.pt"
     results_path = "/models/results.png"
-    
-    # Make sure volume is refreshed to see latest files
+
     volume.reload()
-    
+
     if os.path.exists(best_path):
         print("Reading best.pt...")
         with open(best_path, "rb") as f:
             files["best.pt"] = f.read()
-            
+
     if os.path.exists(results_path):
         print("Reading results.png...")
         with open(results_path, "rb") as f:
             files["results.png"] = f.read()
-            
+
     return files
 
 @app.local_entrypoint()
@@ -128,21 +123,20 @@ def main():
     """
     print("Starting remote training task on Modal...")
     train_yolo.remote()
-    
+
     print("Downloading model weights and training logs from Modal Volume...")
     files = get_trained_files.remote()
-    
-    # Save files locally
+
     local_model_dir = Path("models")
     local_model_dir.mkdir(exist_ok=True)
-    
+
     if "best.pt" in files:
         with open(local_model_dir / "best.pt", "wb") as f:
             f.write(files["best.pt"])
         print(f"Successfully saved weights to: {local_model_dir / 'best.pt'}")
     else:
         print("Error: best.pt not found in returned files.")
-        
+
     if "results.png" in files:
         with open(local_model_dir / "results.png", "wb") as f:
             f.write(files["results.png"])

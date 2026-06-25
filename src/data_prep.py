@@ -12,15 +12,14 @@ def prepare_yolo_dataset_from_parquet(split="train", limit=100, output_dir="data
     and extracts a subset of images and labels in YOLO format.
     """
     print(f"\n--- Preparing '{split}' split (limit={limit}) ---")
-    
-    # Map split to parquet filename
+
     if split == "train":
         filename = "data/train-00000-of-00019.parquet"
     elif split == "val":
         filename = "data/validation-00000-of-00002.parquet"
     else:
         raise ValueError(f"Invalid split: {split}")
-        
+
     print(f"Downloading parquet file '{filename}' from benjamintli/sku110k on HF...")
     parquet_path = hf_hub_download(
         repo_id="benjamintli/sku110k",
@@ -28,86 +27,73 @@ def prepare_yolo_dataset_from_parquet(split="train", limit=100, output_dir="data
         repo_type="dataset"
     )
     print(f"Parquet file downloaded to: {parquet_path}")
-    
-    # Load dataset using pandas (reading only columns we need to save memory)
+
     print("Loading parquet data...")
     df = pd.read_parquet(parquet_path, columns=["image", "objects"])
     print(f"Total rows available in parquet file: {len(df)}")
-    
-    # Define paths
+
     img_dir = Path(output_dir) / "images" / split
     lbl_dir = Path(output_dir) / "labels" / split
     img_dir.mkdir(parents=True, exist_ok=True)
     lbl_dir.mkdir(parents=True, exist_ok=True)
-    
-    # Process rows
+
     processed = 0
     for idx in tqdm(range(min(limit, len(df)))):
         row = df.iloc[idx]
         image_dict = row["image"]
         objects_dict = row["objects"]
-        
+
         img_bytes = image_dict.get("bytes")
         if img_bytes is None:
             continue
-            
-        # Load PIL image
+
         try:
             img = Image.open(io.BytesIO(img_bytes)).convert("RGB")
         except Exception as e:
             print(f"Error loading image at index {idx}: {e}")
             continue
-            
+
         filename_prefix = f"sku_{split}_{idx:04d}"
-        
-        # Save image
+
         img_path = img_dir / f"{filename_prefix}.jpg"
         img.save(img_path)
-        
-        # Save labels in YOLO format
+
         label_path = lbl_dir / f"{filename_prefix}.txt"
-        
+
         w, h = img.size
         bboxes = objects_dict.get("bbox", [])
-        
+
         with open(label_path, "w") as f:
             for bbox in bboxes:
-                # bounding box: [x_min, y_min, box_w, box_h]
                 x_min, y_min, box_w, box_h = bbox
-                
-                # Clip values to ensure valid coordinates
+
                 x_min = max(0.0, x_min)
                 y_min = max(0.0, y_min)
                 box_w = min(box_w, w - x_min)
                 box_h = min(box_h, h - y_min)
-                
+
                 if box_w <= 0 or box_h <= 0:
                     continue
-                    
-                # Convert to normalized center_x, center_y, width, height
+
                 x_center = x_min + box_w / 2.0
                 y_center = y_min + box_h / 2.0
-                
+
                 x_center_norm = x_center / w
                 y_center_norm = y_center / h
                 width_norm = box_w / w
                 height_norm = box_h / h
-                
-                # YOLO class_id is 0 for "product"
+
                 class_id = 0
                 f.write(f"{class_id} {x_center_norm:.6f} {y_center_norm:.6f} {width_norm:.6f} {height_norm:.6f}\n")
-                
+
         processed += 1
-        
+
     print(f"Successfully processed {processed} images and labels for split '{split}'")
 
 if __name__ == "__main__":
-    # Prepare subset
-    # Train: 200 images, Val: 50 images
     prepare_yolo_dataset_from_parquet(split="train", limit=200)
     prepare_yolo_dataset_from_parquet(split="val", limit=50)
-    
-    # Create dataset yaml file for YOLO training
+
     yaml_content = """
 path: sku110k_subset  # dataset root dir
 train: images/train  # train images (relative to path)

@@ -19,7 +19,7 @@ st.markdown("""
         color: #f8fafc;
         font-family: 'Inter', sans-serif;
     }
-    
+
     /* Title and Header customization */
     .title-text {
         font-size: 3rem !important;
@@ -29,14 +29,14 @@ st.markdown("""
         -webkit-text-fill-color: transparent;
         margin-bottom: 0.5rem;
     }
-    
+
     .subtitle-text {
         font-size: 1.25rem;
         color: #94a3b8;
         margin-bottom: 2rem;
         font-weight: 400;
     }
-    
+
     /* Card design for metrics and information */
     .metric-card {
         background: rgba(30, 41, 59, 0.7);
@@ -46,7 +46,7 @@ st.markdown("""
         box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
         margin-bottom: 1.5rem;
     }
-    
+
     .metric-header {
         font-size: 1rem;
         color: #94a3b8;
@@ -54,18 +54,18 @@ st.markdown("""
         letter-spacing: 0.05em;
         margin-bottom: 0.25rem;
     }
-    
+
     .metric-value {
         font-size: 2.25rem;
         font-weight: 700;
         color: #38bdf8;
     }
-    
+
     /* Sidebar customization */
     .css-1d391tw {
         background-color: #1e293b;
     }
-    
+
     /* Highlight tags */
     .brand-tag {
         display: inline-block;
@@ -83,14 +83,14 @@ st.markdown("""
 with st.sidebar:
     st.image("https://images.unsplash.com/photo-1542838132-92c53300491e?auto=format&fit=crop&q=80&w=400", width="stretch")
     st.markdown("### ⚙️ API Configuration")
-    
-    
+
+
     api_url = st.text_input(
         "Modal API Base URL",
         value="https://jitghosh81287--sku110k-api-api.modal.run",
         help="Paste the deployed Modal URL here. E.g. https://<username>--sku110k-api-api.modal.run"
     )
-    
+
     st.markdown("---")
     st.markdown("""
     ### 📝 Assignment Objective
@@ -99,7 +99,7 @@ with st.sidebar:
     - Groups detected products by brand similarity.
     - Generates visualization outputs.
     - Returns structured inference results via an API.
-    
+
     ### 🔬 Technical Stack
     - **YOLOv8 Nano** (Object Detection)
     - **ResNet-50** (Visual Embedding Extractor)
@@ -115,11 +115,11 @@ col1, col2 = st.columns([1, 1])
 
 with col1:
     st.markdown("### 📥 Input Source")
-    
+
     input_method = st.radio("Choose input method:", ("Upload Image File", "Provide Image URL"))
-    
+
     image_to_process = None
-    
+
     if input_method == "Upload Image File":
         uploaded_file = st.file_uploader("Choose a retail shelf image...", type=["jpg", "jpeg", "png"])
         if uploaded_file is not None:
@@ -134,49 +134,49 @@ with col1:
                 st.image(image_to_process, caption="Fetched Image", width="stretch")
             except Exception as e:
                 st.error(f"Error fetching image: {e}")
-                
+
     st.markdown("---")
-    
-   
+
+
     run_button = st.button("🚀 Analyze Shelf Layout", type="primary", width="stretch")
 
 with col2:
     st.markdown("### 📊 Inference Results")
-    
+
     if run_button:
         if image_to_process is None:
             st.warning("Please upload an image or provide a valid URL first.")
         else:
             with st.spinner("Invoking Modal GPU Backend (YOLO Object Detection & ResNet Clustering)..."):
                 try:
-                    
+
                     base_url = api_url.rstrip("/")
                     predict_endpoint = f"{base_url}/predict"
-                    
-                    
+
+
                     response = None
                     if input_method == "Upload Image File":
                         img_byte_arr = io.BytesIO()
                         image_to_process.save(img_byte_arr, format='JPEG')
                         img_byte_arr = img_byte_arr.getvalue()
-                        
+
                         files = {'file': ('image.jpg', img_byte_arr, 'image/jpeg')}
                         response = requests.post(predict_endpoint, files=files, timeout=45)
                     else:
                         data = {'image_url': url_input}
                         response = requests.post(predict_endpoint, data=data, timeout=45)
-                        
+
                     if response.status_code == 200:
                         results = response.json()
                         objects = results.get("objects", [])
                         vis_path = results.get("visualization_path", "")
-                        
-                        
+
+
                         total_products = len(objects)
                         brand_groups = set([obj.get("group_id") for obj in objects])
                         total_brands = len(brand_groups)
-                        
-                        
+
+
                         m_col1, m_col2 = st.columns(2)
                         with m_col1:
                             st.markdown(f"""
@@ -192,13 +192,13 @@ with col2:
                                 <div class="metric-value" style="color: #a855f7;">{total_brands}</div>
                             </div>
                             """, unsafe_allow_html=True)
-                            
-                        
+
+
                         if vis_path:
-                            
+
                             vis_filename = vis_path.split("/")[-1]
                             vis_url = f"{base_url}/outputs/{vis_filename}"
-                            
+
                             st.markdown("#### Bounding Boxes & Brand Grouping")
                             try:
                                 vis_response = requests.get(vis_url, timeout=10)
@@ -209,35 +209,35 @@ with col2:
                                     st.error(f"Failed to fetch visualization image. Status code: {vis_response.status_code}")
                             except Exception as e:
                                 st.error(f"Error fetching visualization image: {e}")
-                                
-                        
+
+
                         st.markdown("#### Detected Products Detail")
-                        
+
                         color_palette = [
                             "#FF3366", "#33FF66", "#3366FF", "#FFFF33", "#FF33FF", "#33FFFF",
                             "#FF9933", "#9933FF", "#33FF99", "#FF3399", "#99FF33", "#3399FF"
                         ]
-                        
+
                         unique_brands_list = sorted(list(brand_groups))
                         brand_colors_html = ""
                         for idx, b_id in enumerate(unique_brands_list):
                             color = color_palette[idx % len(color_palette)]
                             brand_colors_html += f'<span class="brand-tag" style="background-color: {color};">{b_id}</span>'
-                            
+
                         st.markdown(brand_colors_html, unsafe_allow_html=True)
-                        
+
                         with st.expander("Show Detailed Object List"):
                             for i, obj in enumerate(objects):
                                 st.write(f"Product #{i+1}: BBox: {obj['bbox']} | Confidence: {obj['confidence']:.2f} | Brand: **{obj['group_id']}**")
-                                
-                        
+
+
                         with st.expander("Show Raw API Response"):
                             st.json(results)
-                            
+
                     else:
                         st.error(f"Inference failed. Status code: {response.status_code}")
                         st.text(response.text)
-                        
+
                 except Exception as e:
                     st.error(f"Error connecting to backend API: {e}")
                     st.info("Check if your Modal API is deployed and the URL in the sidebar is correct.")
