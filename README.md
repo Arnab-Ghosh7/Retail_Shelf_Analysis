@@ -68,7 +68,6 @@ The system follows a modular, serverless architecture optimized for high perform
 ├── datasets/                 # Local directory for dataset (git-ignored)
 ├── models/                   # Local model weights and training logs (git-ignored)
 ├── src/
-│   ├── __init__.py
 │   ├── api.py                # FastAPI app deployed on Modal
 │   ├── data_prep.py          # Hugging Face dataset download & prep script
 │   ├── model_pipeline.py     # YOLO Inference + ResNet Embedding + Clustering Pipeline
