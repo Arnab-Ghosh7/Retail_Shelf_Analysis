@@ -6,30 +6,7 @@ An end-to-end computer vision pipeline for retail shelf layout analysis. The sys
 
 The system follows a modular, serverless architecture optimized for high performance and scalability:
 
-```
-[Input Image/URL] 
-       │
-       ▼
-┌──────────────────────────────────────────┐
-│ 1. Product Detection (YOLOv8 Nano)       │  <-- Deployed on Modal GPU (T4)
-└──────────────────────────────────────────┘
-       │ (Bounding Box Crops)
-       ▼
-┌──────────────────────────────────────────┐
-│ 2. Feature Extraction (ResNet-50)       │  <-- Feature vector extraction (2048-dim)
-└──────────────────────────────────────────┘
-       │ (L2-Normalized Embeddings)
-       ▼
-┌──────────────────────────────────────────┐
-│ 3. Brand Clustering (DBSCAN / Cosine)    │  <-- Visual grouping without prior templates
-└──────────────────────────────────────────┘
-       │
-       ├──────────────────────────┐
-       ▼                          ▼
-┌──────────────┐           ┌────────────────────────────────┐
-│ JSON Output  │           │ Output Image Visualizations    │
-└──────────────┘           └────────────────────────────────┘
-```
+
 
 1. **Product Detection:** A fine-tuned YOLOv8 Nano model detects products on high-density retail shelves.
 2. **Product Cropping & Embedding Extraction:** Bounding box crops are resized and passed through a pre-trained ResNet-50 network (with the classification head removed) to extract a 2048-dimensional feature vector, which is L2-normalized.
