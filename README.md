@@ -3,7 +3,30 @@
 An end-to-end computer vision pipeline for retail shelf layout analysis. The system accepts an image of a retail shelf, detects individual products, groups them by brand visual similarity, and returns structured JSON responses and color-coded visualization outputs via a FastAPI backend deployed on Modal.com.
 
 ## Architecture Overview
-
+```
+[Input Image/URL] 
+       │
+       ▼
+┌──────────────────────────────────────────┐
+│ 1. Product Detection (YOLOv8 Nano)       │  <-- Deployed on Modal GPU (T4)
+└──────────────────────────────────────────┘
+       │ (Bounding Box Crops)
+       ▼
+┌──────────────────────────────────────────┐
+│ 2. Feature Extraction (ResNet-50)       │  <-- Feature vector extraction (2048-dim)
+└──────────────────────────────────────────┘
+       │ (L2-Normalized Embeddings)
+       ▼
+┌──────────────────────────────────────────┐
+│ 3. Brand Clustering (DBSCAN / Cosine)    │  <-- Visual grouping without prior templates
+└──────────────────────────────────────────┘
+       │
+       ├──────────────────────────┐
+       ▼                          ▼
+┌──────────────┐           ┌────────────────────────────────┐
+│ JSON Output  │           │ Output Image Visualizations    │
+└──────────────┘           └────────────────────────────────┘
+```
 The system follows a modular, serverless architecture optimized for high performance and scalability:
 
 
