@@ -1,5 +1,6 @@
 # Retail Shelf Analysis System
 
+An end-to-end computer vision pipeline for retail shelf layout analysis. The system accepts an image of a retail shelf, detects individual products, groups them by brand visual similarity, and returns structured JSON responses and color-coded visualization outputs via a FastAPI backend deployed on Modal.com.
 
 ## Architecture Overview
 ```
