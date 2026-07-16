@@ -31,10 +31,7 @@ The system follows a modular, serverless architecture optimized for high perform
 
 
 
-1. **Product Detection:** A fine-tuned YOLOv8 Nano model detects products on high-density retail shelves.
-2. **Product Cropping & Embedding Extraction:** Bounding box crops are resized and passed through a pre-trained ResNet-50 network (with the classification head removed) to extract a 2048-dimensional feature vector, which is L2-normalized.
-3. **Brand Grouping:** The normalized visual embeddings are clustered using **DBSCAN** with a **Cosine Distance** metric. Visually similar products (i.e. those sharing the same brand design/packaging) are grouped into the same cluster.
-4. **Visualization & Response:** The pipeline generates an annotated image with color-coded bounding boxes corresponding to brand groups and returns a structured JSON payload with coordinates, confidence scores, and group labels.
+r-coded bounding boxes corresponding to brand groups and returns a structured JSON payload with coordinates, confidence scores, and group labels.
 
 ---
 
